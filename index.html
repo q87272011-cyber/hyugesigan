@@ -72,19 +72,6 @@ button:focus-visible { outline: 2px solid var(--boiler); outline-offset: 2px; }
   <div class="scene" id="scene">
     <canvas id="cv" aria-label="아파트 단면. 지하 보일러실의 배관, 보일러, 펌프에서 오는 파동이 휴게실 벽의 세 자리를 때린다. 파동이 닿는 순간 그 높이를 누르면 반대 파동이 흩트린다."></canvas>
   </div>
-  <div class="strip">
-    <div class="btns">
-      <button class="go" id="playBtn" type="button" aria-label="휴게 시작">▶</button>
-      <button id="resetBtn" type="button" aria-label="이 밤 처음부터">↺</button>
-      <button id="muteBtn" type="button" aria-pressed="false" aria-label="소리 끄기"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M2 7h3l4-3v10l-4-3H2z" fill="currentColor"/><path id="muteWaves" d="M12 6q2 3 0 6M14 4q4 5 0 10" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
-    </div>
-    <div class="lanes">
-      <button class="lane" data-lane="0" type="button" style="--lc:#e8d6a8" aria-label="위쪽 패드: 배관 (W 또는 ↑)" disabled><svg width="44" height="22" viewBox="0 0 44 22" aria-hidden="true"><rect x="2" y="8" width="40" height="6" rx="2" fill="#e8d6a8" opacity=".5"/><path d="M14 4l4 7-4 7M26 4l4 7-4 7" fill="none" stroke="#e8d6a8" stroke-width="2"/></svg></button>
-      <button class="lane" data-lane="1" type="button" style="--lc:#e3884c" aria-label="가운데 패드: 보일러 (S, 스페이스)" disabled><svg width="44" height="22" viewBox="0 0 44 22" aria-hidden="true"><path d="M8 3a12 12 0 0 1 0 16M16 1a18 18 0 0 1 0 20M24 3a12 12 0 0 1 0 16" fill="none" stroke="#e3884c" stroke-width="2.4"/></svg></button>
-      <button class="lane" data-lane="2" type="button" style="--lc:#9fb7ad" aria-label="아래쪽 패드: 펌프 (X 또는 ↓)" disabled><svg width="44" height="22" viewBox="0 0 44 22" aria-hidden="true"><circle cx="12" cy="11" r="7" fill="none" stroke="#9fb7ad" stroke-width="2"/><path d="M12 4v14M5 11h14" stroke="#9fb7ad" stroke-width="1.6"/><path d="M24 15q4-8 8 0t8 0" fill="none" stroke="#9fb7ad" stroke-width="2"/></svg></button>
-    </div>
-    <button class="ring" id="answerBtn" type="button" disabled aria-label="인터폰 받기">☎</button>
-  </div>
 </div>
 
 <script>
@@ -279,7 +266,7 @@ button:focus-visible { outline: 2px solid var(--boiler); outline-offset: 2px; }
     if (S.mode !== 'running') play();      // no need to press ▶ first: the first press starts (or resumes) the night
     if (S.gm < S.awakeUntil && S.rest) return;
     if (S.down[lane]) return;
-    S.down[lane] = true; laneBtns[lane].classList.add('down');
+    S.down[lane] = true;
     const lv = L(), now = S.t;
     let best = null, bd = 9;
     for (let i = Math.max(0, S.ni - 4); i < S.notes.length; i++) {
@@ -294,7 +281,7 @@ button:focus-visible { outline: 2px solid var(--boiler); outline-offset: 2px; }
   }
   function release(lane) {
     if (!S.down[lane]) return;
-    S.down[lane] = false; laneBtns[lane].classList.remove('down');
+    S.down[lane] = false;
     const h = S.holdNote;
     if (h && h.lane === lane) {
       S.holdNote = null;
@@ -374,7 +361,6 @@ button:focus-visible { outline: 2px solid var(--boiler); outline-offset: 2px; }
       else if (S.sitting && (working || S.depth >= 24)) { S.sitting = false; S.sitT = now; if (!working) sfx.bulb(at(now)); }
       if (asleepNow && now >= S.breathAt) { sfx.breath(at(now)); S.breathAt = now + 3.4; }
       const off = working;
-      laneBtns.forEach(b => { b.disabled = off || S.mode !== 'running'; });
     }
     for (let k = 0; k < 3; k++) S.wall[k] = Math.max(0, S.wall[k] - dt * 2.5);
     S.thud = Math.max(0, S.thud - dt * 1.5);
@@ -384,7 +370,7 @@ button:focus-visible { outline: 2px solid var(--boiler); outline-offset: 2px; }
     if (S.rest && S.gm >= lv.end) finish();
   }
 
-  // scaffold: lane buttons light just before their wave lands
+  // scaffold: the pad buttons on the wall light just before their wave lands
   function cueLanes(now) {
     const g = L().guide, on = [false, false, false];
     if (g >= 2 || !S.rest) {
@@ -395,17 +381,16 @@ button:focus-visible { outline: 2px solid var(--boiler); outline-offset: 2px; }
       }
       if (S.holdNote) on[1] = true;
     }
-    laneBtns.forEach((b, k) => b.classList.toggle('cue', on[k]));
+    S.cue = on;
   }
 
-  function syncPhone() { $('answerBtn').disabled = !(S.ring && S.mode === 'running'); }
+  function syncPhone() {}
   function answer() {
     if (!S.ring || S.mode !== 'running') return;
     S.answered++; S.ring = null; S.awakeUntil = S.gm + CALL_AWAKE_GM; S.depth = 0; setHit('call'); syncPhone();
     releaseAll();
     if (S.holdNote) release(S.holdNote.lane);
   }
-  $('answerBtn').addEventListener('click', answer);
   function finish() {
     S.mode = 'ended'; S.ring = null; S.awakeUntil = -1; S.asleep = false; S.holdNote = null; S.sitting = false;
     nightLog[level] = { from: L().from || 0, end: L().end, sleep: S.sleepMin.slice(), work: S.workMin.slice() };
@@ -655,24 +640,6 @@ button:focus-visible { outline: 2px solid var(--boiler); outline-offset: 2px; }
     }
     ctx.globalAlpha = 1;
 
-    // pads: a target ring each, with an approach ring that fades over the nights
-    const ringAlpha = (!S.rest ? 1 : [0, 0.35, 0.7, 1][lv.guide]) * dim;
-    for (let lane = 0; lane < 3; lane++) {
-      const y = PAD_Y[lane];
-      const missed = now - S.padMiss[lane] < 0.35;
-      ctx.globalAlpha = S.down[lane] || missed ? 0.95 : 0.35; ctx.fillStyle = missed ? '#d9473a' : S.down[lane] ? C.mach : LANE_C[lane];
-      roundRect(ctx, WALL1 + 1, y - 10, 10, 20, 3); ctx.fill();
-      let nx = null;
-      for (let i = S.ni; i < S.notes.length; i++) { const n = S.notes[i]; if (n.t - now > APPROACH) break; if (n.lane === lane && !n.judged) { nx = n; break; } }
-      ctx.globalAlpha = 0.35; dotArc(ctx, WALL1, y, 16, 0, Math.PI * 2, LANE_C[lane], PX);
-      if (nx && ringAlpha > 0) {
-        const k = Math.max(0, (nx.t - now) / APPROACH);
-        ctx.globalAlpha = ringAlpha * (1 - k * 0.6);
-        dotArc(ctx, WALL1, y, 16 + k * 70, 0, Math.PI * 2, LANE_C[lane], nx.kind === 'tap' || nx.kind === 'soft' ? PX : 2 * PX);
-      }
-    }
-    ctx.globalAlpha = 1;
-
     for (let i = fx.length - 1; i >= 0; i--) {
       const e = fx[i], age = now - e.t0;
       if (age < 0) continue;
@@ -717,6 +684,32 @@ button:focus-visible { outline: 2px solid var(--boiler); outline-offset: 2px; }
         px(ctx, x, y, PX, PX, amp > 2 ? '#8a9478' : '#4d5643');
       }
     }
+
+    // pads (drawn over the trembling wall): a push button each, with an approach ring that fades over the nights
+    const ringAlpha = (!S.rest ? 1 : [0, 0.35, 0.7, 1][lv.guide]) * dim;
+    for (let lane = 0; lane < 3; lane++) {
+      const y = PAD_Y[lane];
+      const missed = now - S.padMiss[lane] < 0.35;
+      // a push button set into the wall: bezel, shadow, cap; pressed it sinks and lights up; cued it pulses
+      const bx = WALL1 + 5, down = S.down[lane], cue = S.cue && S.cue[lane], sink = down ? 3 : 0;
+      ctx.globalAlpha = 1; ctx.fillStyle = '#161a15'; roundRect(ctx, WALL1 - 12, y - 18, 32, 36, 6); ctx.fill();
+      ctx.strokeStyle = '#3d4539'; ctx.lineWidth = 3; ctx.stroke();
+      if (cue) { ctx.globalAlpha = 0.55 + 0.4 * Math.sin(now * 22); ctx.strokeStyle = LANE_C[lane]; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(bx, y, 18, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1; }
+      ctx.fillStyle = '#0a0c09'; ctx.beginPath(); ctx.arc(bx + 3, y + 3, 12, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = missed ? '#d9473a' : down ? C.mach : LANE_C[lane]; ctx.beginPath(); ctx.arc(bx + sink, y + sink, 12, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = down ? 'rgba(20,30,18,0.35)' : 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.arc(bx + sink + 3, y + sink + 3, 8, 0, Math.PI * 2); ctx.fill();
+      if (!down) { ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.beginPath(); ctx.arc(bx - 4, y - 4, 4, 0, Math.PI * 2); ctx.fill(); }
+      else { ctx.globalAlpha = 0.5; ctx.fillStyle = C.mach; ctx.beginPath(); ctx.arc(bx + sink, y + sink, 20, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; }
+      let nx = null;
+      for (let i = S.ni; i < S.notes.length; i++) { const n = S.notes[i]; if (n.t - now > APPROACH) break; if (n.lane === lane && !n.judged) { nx = n; break; } }
+      ctx.globalAlpha = 0.35; dotArc(ctx, bx, y, 22, 0, Math.PI * 2, LANE_C[lane], PX);
+      if (nx && ringAlpha > 0) {
+        const k = Math.max(0, (nx.t - now) / APPROACH);
+        ctx.globalAlpha = ringAlpha * (1 - k * 0.6);
+        dotArc(ctx, bx, y, 22 + k * 70, 0, Math.PI * 2, LANE_C[lane], nx.kind === 'tap' || nx.kind === 'soft' ? PX : 2 * PX);
+      }
+    }
+    ctx.globalAlpha = 1;
 
     // machine: combo lamps
     for (let i = 0; i < 5; i++) { ctx.fillStyle = i < Math.min(5, Math.floor(S.combo / 5)) ? C.mach : '#232a2e'; ctx.fillRect(416 + i * 7, 284, 5, 10); }
@@ -916,11 +909,6 @@ button:focus-visible { outline: 2px solid var(--boiler); outline-offset: 2px; }
     requestAnimationFrame(frame);
   }
   function syncPlay() {
-    const b = $('playBtn');
-    b.textContent = S.mode === 'running' ? '❚❚' : '▶';
-    b.setAttribute('aria-label', S.mode === 'running' ? '잠깐 멈춤' : '휴게 시작');
-    b.disabled = S.mode === 'ended';
-    laneBtns.forEach(x => { x.disabled = S.mode === 'ended'; });
   }
   function syncNights() {
     document.querySelectorAll('.night').forEach(btn => {
@@ -930,7 +918,7 @@ button:focus-visible { outline: 2px solid var(--boiler); outline-offset: 2px; }
       btn.classList.toggle('next', S.mode === 'ended' && n === unlocked && n !== level);
     });
   }
-  function releaseAll() { for (let k = 0; k < 3; k++) { S.down[k] = false; laneBtns[k].classList.remove('down'); } S.holdNote = null; }
+  function releaseAll() { for (let k = 0; k < 3; k++) S.down[k] = false; S.holdNote = null; }
   function play() {
     if (S.mode === 'ended') return;
     audioInit();
@@ -938,27 +926,16 @@ button:focus-visible { outline: 2px solid var(--boiler); outline-offset: 2px; }
     else { S.mode = 'running'; audioPause(false); clockStart(); S.started = true; }
     syncPlay(); syncPhone();
   }
-  $('playBtn').addEventListener('click', play);
-  $('muteBtn').addEventListener('click', e => {
-    A.muted = !A.muted; e.currentTarget.setAttribute('aria-pressed', String(A.muted));
-    e.currentTarget.setAttribute('aria-label', A.muted ? '소리 켜기' : '소리 끄기');
-    $('muteWaves').style.opacity = A.muted ? 0.15 : 1;
-    if (A.master) A.master.gain.value = A.muted ? 0 : 0.8;
-  });
+  function toggleMute() { A.muted = !A.muted; if (A.master) A.master.gain.value = A.muted ? 0 : 0.8; }
   function reset() {
     if (A.ctx) audioPause(true);
     S = fresh(); fx.length = 0; parts.length = 0; zs.length = 0; tuneStep = 0;
-    laneBtns.forEach(b => b.classList.remove('down', 'cue'));
     syncPlay(); syncPhone(); syncNights(); draw(0);
   }
-  $('resetBtn').addEventListener('click', reset);
   document.querySelectorAll('.night').forEach(btn => btn.addEventListener('click', () => { level = +btn.dataset.n; reset(); }));
 
-  // input: lane buttons, the picture (tap at the height of the wave), or keys W/S/X, ↑/space/↓
-  laneBtns.forEach((b, k) => {
-    b.addEventListener('pointerdown', e => { e.preventDefault(); press(k); });
-    ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => b.addEventListener(ev, () => release(k)));
-  });
+  // input: the picture (tap at the height of the wave, or the interphone itself), or keys W/S/X, ↑/space/↓.
+  // Enter/E picks up the interphone, P/Esc pauses, M mutes. Restart a night with its moon button.
   const toScene = e => { const r = cv.getBoundingClientRect(), k = r.width / VW; return { x: (e.clientX - r.left) / k, y: (e.clientY - r.top) / k - TB }; };
   const onPhone = q => q.x > PHONE.x - 24 && q.x < PHONE.x + PHONE.w + 24 && q.y > PHONE.y - 24 && q.y < PHONE.y + PHONE.h + 24;
   const ptrLane = new Map();
@@ -970,12 +947,17 @@ button:focus-visible { outline: 2px solid var(--boiler); outline-offset: 2px; }
   });
   ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => cv.addEventListener(ev, e => { const lane = ptrLane.get(e.pointerId); if (lane !== undefined) { ptrLane.delete(e.pointerId); release(lane); } }));
   const KEYS = { KeyW: 0, ArrowUp: 0, KeyS: 1, Space: 1, ArrowRight: 1, ArrowLeft: 1, KeyX: 2, ArrowDown: 2 };
-  window.addEventListener('keydown', e => { const k = KEYS[e.code]; if (k === undefined) return; e.preventDefault(); if (e.repeat) return; press(k); });
+  window.addEventListener('keydown', e => {
+    if (e.code === 'Enter' || e.code === 'KeyE') { e.preventDefault(); if (S.mode !== 'running' && S.mode !== 'ended') play(); answer(); return; }
+    if (e.code === 'KeyP' || e.code === 'Escape') { if (S.started && S.mode !== 'ended') play(); return; }
+    if (e.code === 'KeyM') { toggleMute(); return; }
+    const k = KEYS[e.code]; if (k === undefined) return; e.preventDefault(); if (e.repeat) return; press(k);
+  });
   window.addEventListener('keyup', e => { const k = KEYS[e.code]; if (k === undefined) return; e.preventDefault(); release(k); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && S.mode === 'running') play(); });
 
   S = fresh(); syncPlay(); syncPhone(); syncNights();
-  if (window.__QA) window.__QA = { get S() { return S; }, press, release, L };
+  if (window.__QA) window.__QA = { get S() { return S; }, press, release, L, answer, start() { if (S.mode !== 'running') play(); } };
   window.addEventListener('resize', fit);
   fit();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
