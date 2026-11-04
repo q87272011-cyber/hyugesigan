@@ -275,7 +275,9 @@ button:focus-visible { outline: 2px solid var(--boiler); outline-offset: 2px; }
   // ---------- input
   const laneBtns = [...document.querySelectorAll('.lane')];
   function press(lane) {
-    if (S.mode !== 'running' || S.gm < S.awakeUntil && S.rest) return;
+    if (S.mode === 'ended') return;
+    if (S.mode !== 'running') play();      // no need to press ▶ first: the first press starts (or resumes) the night
+    if (S.gm < S.awakeUntil && S.rest) return;
     if (S.down[lane]) return;
     S.down[lane] = true; laneBtns[lane].classList.add('down');
     const lv = L(), now = S.t;
@@ -918,7 +920,7 @@ button:focus-visible { outline: 2px solid var(--boiler); outline-offset: 2px; }
     b.textContent = S.mode === 'running' ? '❚❚' : '▶';
     b.setAttribute('aria-label', S.mode === 'running' ? '잠깐 멈춤' : '휴게 시작');
     b.disabled = S.mode === 'ended';
-    laneBtns.forEach(x => { x.disabled = S.mode !== 'running'; });
+    laneBtns.forEach(x => { x.disabled = S.mode === 'ended'; });
   }
   function syncNights() {
     document.querySelectorAll('.night').forEach(btn => {
